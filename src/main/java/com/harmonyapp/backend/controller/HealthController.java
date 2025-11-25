@@ -1,7 +1,8 @@
 package com.harmonyapp.backend.controller;
 
 import com.harmonyapp.backend.common.ApiResponse;
-import com.harmonyapp.backend.entity.HealthMetric;
+import com.harmonyapp.backend.dto.HealthMetricRequest;
+import com.harmonyapp.backend.dto.HealthMetricResponse;
 import com.harmonyapp.backend.service.HealthService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -17,17 +18,23 @@ public class HealthController {
     private HealthService healthService;
 
     @GetMapping("/metrics")
-    public ApiResponse<List<HealthMetric>> getMetrics() {
+    public ApiResponse<List<HealthMetricResponse>> getMetrics() {
         Long userId = 1L; // Mock user
-        return ApiResponse.success(healthService.getMetrics(userId));
+        List<HealthMetricResponse> responses = healthService.getMetrics(userId).stream()
+                .map(HealthMetricResponse::fromEntity)
+                .toList();
+        return ApiResponse.success(responses);
     }
 
     @PostMapping("/metrics")
-    public ApiResponse<Void> addMetric(@RequestBody HealthMetric metric) {
+    public ApiResponse<Void> addMetric(@RequestBody HealthMetricRequest request) {
         Long userId = 1L; // Mock user
-        metric.setUserId(userId);
-        healthService.addMetric(metric);
-        return ApiResponse.success("保存成功");
+        try {
+            healthService.addMetric(request.toEntity(userId));
+            return ApiResponse.success("保存成功");
+        } catch (IllegalArgumentException ex) {
+            return ApiResponse.error(400, ex.getMessage());
+        }
     }
 
     @GetMapping("/trend")

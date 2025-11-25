@@ -17,6 +17,8 @@ public class CouponService {
     }
 
     public void claimCoupon(Long userId, Long couponId) {
-        // Logic to claim coupon
+        couponRepository.findById(couponId)
+                .orElseThrow(() -> new IllegalArgumentException("优惠券不存在"));
+        // TODO: persist claim record with userId if needed
     }
 }

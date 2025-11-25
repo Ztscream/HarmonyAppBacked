@@ -2,8 +2,9 @@ package com.harmonyapp.backend.controller;
 
 import com.harmonyapp.backend.common.ApiResponse;
 import com.harmonyapp.backend.dto.ClaimCouponRequest;
-import com.harmonyapp.backend.entity.Coupon;
+import com.harmonyapp.backend.dto.CouponResponse;
 import com.harmonyapp.backend.service.CouponService;
+import com.harmonyapp.backend.util.ExternalIdUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
@@ -16,21 +17,25 @@ public class CouponController {
     private CouponService couponService;
 
     @GetMapping("/available")
-    public ApiResponse<List<Coupon>> getAvailableCoupons() {
-        return ApiResponse.success(couponService.getAllCoupons());
+    public ApiResponse<List<CouponResponse>> getAvailableCoupons() {
+        List<CouponResponse> responses = couponService.getAllCoupons().stream()
+                .map(CouponResponse::fromEntity)
+                .toList();
+        return ApiResponse.success(responses);
     }
 
     @PostMapping("/claim")
     public ApiResponse<Void> claim(@RequestBody ClaimCouponRequest request) {
         Long userId = 1L; // Mock user
-        // Parse ID from string "c_001" if needed, or just use ID directly.
-        // For simplicity, assuming frontend sends numeric ID or we parse it.
-        // But docs say "c_001". Let's assume we handle that mapping or just use numeric
-        // for DB.
-        // Here we just take the ID as is if it were Long, or parse it.
-        // Let's assume for this demo we just use the ID passed.
-        // If request.getCouponId() is "c_001", we might need to strip prefix.
-        // couponService.claimCoupon(userId, Long.parseLong(request.getCouponId()));
-        return ApiResponse.success("领取成功");
+        if (request == null || request.getCouponId() == null) {
+            return ApiResponse.error(400, "couponId不能为空");
+        }
+        try {
+            Long couponId = ExternalIdUtil.parseCouponCode(request.getCouponId());
+            couponService.claimCoupon(userId, couponId);
+            return ApiResponse.success("领取成功");
+        } catch (IllegalArgumentException ex) {
+            return ApiResponse.error(400, ex.getMessage());
+        }
     }
 }
